@@ -18,8 +18,8 @@ proxy_host = '127.0.0.1'
 proxy_port = 1080
 
 # Set the SOCKS proxy for pytube
-socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
-socket.socket = socks.socksocket
+# socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+# socket.socket = socks.socksocket
 
 def progress_callback(stream, chunk, bytes_remaining) -> None:
     total_size = stream.filesize
@@ -28,12 +28,11 @@ def progress_callback(stream, chunk, bytes_remaining) -> None:
     print(f"{percentage_of_completion:.2f}% downloaded")
 
 def download_video(url: str) -> None:
-    print(url)
     yt = YouTube(url, on_progress_callback=progress_callback)
-    print(yt.title)
+    # print(yt.title)
 
-    # video = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first().download()
-    # print(video.resolution)
+    video = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first().download()
+    print(video.resolution)
     # video = yt.streams.filter(file_extension='mp4').get_by_resolution('360p').download()
 
 with open('urls.txt') as f:
