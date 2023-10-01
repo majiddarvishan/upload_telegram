@@ -9,9 +9,9 @@ from telethon.errors import SessionPasswordNeededError
 import socks
 import socket
 from pytube import YouTube
+import os
 
-proxy_host = '127.0.0.1'
-proxy_port = 1080
+socks_proxy=("socks5", '127.0.0.1', 1080)
 
 # Set the SOCKS proxy for pytube
 # socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
@@ -25,7 +25,7 @@ api_hash = '344583e45741c457fe1862106095a5eb'
 
 # creating a telegram session and assigning
 # it to a variable client
-tel_client = TelegramClient('anon', api_id, api_hash, proxy=("socks5", proxy_host, proxy_port))
+tel_client = TelegramClient('anon', api_id, api_hash, proxy=socks_proxy)
 
 # connecting and building the session
 tel_client.connect()
@@ -79,6 +79,7 @@ with open('urls.txt') as f:
     for line in f:
         video_file = download_video(line.rstrip())
         upload_file(video_file)
+        os.remove(video_file)
 
 
 # disconnecting the telegram session
