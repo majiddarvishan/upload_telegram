@@ -1,54 +1,85 @@
-# # https://docs.telethon.dev/en/stable/basic/signing-in.html
-# # https://stackoverflow.com/questions/64155483/signing-in-to-telegram-client-with-telethon-automatically-python
-# # https://github.com/LonamiWebs/Telethon
-# # https://pypi.org/project/python-telegram/
+# https://docs.telethon.dev/en/stable/modules/client.html#telethon.client.messages.MessageMethods.send_message
+# https://stackoverflow.com/questions/76383605/how-do-i-upload-large-files-to-telegram-in-python
+# https://github.com/MiyukiKun/FastTelethonhelper/blob/main/README.md
 
-# from telethon import TelegramClient, events, sync, hints
-import asyncio
-# from enum import Enum
-# import datetime
-# import json
-# from json import JSONEncoder
-# import time
+from telethon.sync import TelegramClient
+from telethon.tl.types import InputPeerUser, InputPeerChannel
+from telethon import TelegramClient, sync, events
+from telethon.errors import SessionPasswordNeededError
+import socks
+import socket
+from pytube import YouTube
+import os
 
+socks_proxy=("socks5", '127.0.0.1', 1080)
 
-# These example values won't work. You must get your own api_id and
-# api_hash from https://my.telegram.org, under API Development.
+# Set the SOCKS proxy for pytube
+# socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
+# socket.socket = socks.socksocket
+
+############ telegram #############
+
+# # from telegram as described above
 api_id = 17349
 api_hash = '344583e45741c457fe1862106095a5eb'
 
+# creating a telegram session and assigning
+# it to a variable client
+tel_client = TelegramClient('anon', api_id, api_hash, proxy=socks_proxy)
+
+# connecting and building the session
+tel_client.connect()
+
+# in case of script ran first time it will
+# ask either to input token or otp sent to
+# number or sent or your telegram id
+if not tel_client.is_user_authorized():
+    phone = input('Enter the phone: ')
+    tel_client.send_code_request(phone)
+
+    try:
+        tel_client.sign_in(phone, input('Enter the code: '))
+    except SessionPasswordNeededError:
+        tel_client.sign_in(password=input('Password: '))
 
 
-# client = TelegramClient('anon', api_id, api_hash, proxy=("socks5", '127.0.0.1', 1080))
-# client.start()
+def upload_file(filename : str, title : str):
+    try:
+        # receiver user_id and access_hash, use
+        # my user_id and access_hash for reference
+        # receiver = InputPeerUser('user_id', 'user_hash')
 
-# client.start()
-# client.run_until_disconnected()
+        # sending message using telegram client
+        # tel_client.send_message(receiver, message, parse_mode='html')
+        # tel_client.send_message("me", message=message)
+        tel_client.send_file("me", filename, caption=title)
+    except Exception as e:
+        # there may be many error coming in while like peer
+        # error, wrong access_hash, flood_error, etc
+        print(e)
 
-from telethon import TelegramClient
-from telethon.errors import SessionPasswordNeededError
+############ youtube #############
 
-phone = '00989125305483'
-username = 'my username'
+def progress_callback(stream, chunk, bytes_remaining) -> None:
+    total_size = stream.filesize
+    bytes_downloaded = total_size - bytes_remaining
+    percentage_of_completion = bytes_downloaded / total_size * 100
+    print(f"{percentage_of_completion:.2f}% downloaded")
 
-# Create the client and connect
-client = TelegramClient('majid', api_id, api_hash, proxy=("socks5", '127.0.0.1', 1080))
-client.start()
-print("Client Created")
-# Ensure you're authorized
-# if not client.is_user_authorized():
-#     client.send_code_request(phone)
-#     try:
-#         client.sign_in(phone, input('Enter the code: '))
-#     except SessionPasswordNeededError:
-#         client.sign_in(password=input('Password: '))
+def download_video(url: str) -> None:
+    yt = YouTube(url, on_progress_callback=progress_callback)
+    video = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first().download()
+    # print(video.resolution)
+    # video = yt.streams.filter(file_extension='mp4').get_by_resolution('360p').download()
 
-async def send_mess(message):
-    await client.send_message(entity='my_download', message=message)
+    return str(video), yt.title
 
-newfeature = asyncio.run(send_mess(message="hello world"))
+with open('urls.txt') as f:
+    for line in f:
+        video_file, video_title = download_video(line.rstrip())
+        upload_file(video_file, video_title)
+        os.remove(video_file)
 
-# with client:
-    # client.send_message(entity='my_download', message="hello world")
-    # await send_mess(message="hello world")
-    # client.loop.run_until_complete(send_mess(message="hello world"))
+
+# disconnecting the telegram session
+tel_client.disconnect()
