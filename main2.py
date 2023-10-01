@@ -43,7 +43,7 @@ if not tel_client.is_user_authorized():
         tel_client.sign_in(password=input('Password: '))
 
 
-def upload_file(filename : str):
+def upload_file(filename : str, title : str):
     try:
         # receiver user_id and access_hash, use
         # my user_id and access_hash for reference
@@ -52,7 +52,7 @@ def upload_file(filename : str):
         # sending message using telegram client
         # tel_client.send_message(receiver, message, parse_mode='html')
         # tel_client.send_message("me", message=message)
-        tel_client.send_file("me", filename, caption="Test video")
+        tel_client.send_file("me", filename, caption=title)
     except Exception as e:
         # there may be many error coming in while like peer
         # error, wrong access_hash, flood_error, etc
@@ -68,17 +68,16 @@ def progress_callback(stream, chunk, bytes_remaining) -> None:
 
 def download_video(url: str) -> None:
     yt = YouTube(url, on_progress_callback=progress_callback)
-    # print(yt.title)
     video = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first().download()
     # print(video.resolution)
     # video = yt.streams.filter(file_extension='mp4').get_by_resolution('360p').download()
 
-    return str(video)
+    return str(video), yt.title
 
 with open('urls.txt') as f:
     for line in f:
-        video_file = download_video(line.rstrip())
-        upload_file(video_file)
+        video_file, video_title = download_video(line.rstrip())
+        upload_file(video_file, video_title)
         os.remove(video_file)
 
 
