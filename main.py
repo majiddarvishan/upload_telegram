@@ -10,9 +10,11 @@ import socks
 import socket
 from pytube import YouTube
 import os
+import yt_dlp
+import json
 
 socks_proxy=("socks5", '127.0.0.1', 1080)
-
+socks_proxy= None
 # Set the SOCKS proxy for pytube
 # socks.set_default_proxy(socks.SOCKS5, proxy_host, proxy_port)
 # socket.socket = socks.socksocket
@@ -74,11 +76,41 @@ def download_video(url: str) -> None:
 
     return str(video), yt.title
 
+def download_video_2(url, cookies_file):
+    video_file = "test.mp4"
+    video_title = ""
+    ydl_opts = {
+        'format': 'best',
+        #'outtmpl': '%(title)s.%(ext)s',
+        'outtmpl': 'test.mp4',
+        'cookiefile': cookies_file,
+        'quiet': True,  # Suppress output
+        'print': 'filename',  # Print the filename after download
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        video_title = (info['title'])
+        #video_file = f"{info['title']}.{info['ext']}"
+        #video_title = ydl.sanitize_info(info)
+        #print(video_title)
+        #print(json.dumps(ydl.sanitize_info(info)))
+        result = ydl.download([url])
+        #if result:
+        print(f"Downloaded file: {result}")
+    return video_file, video_title
+
 with open('urls.txt') as f:
     for line in f:
-        video_file, video_title = download_video(line.rstrip())
-        upload_file(video_file, video_title)
-        os.remove(video_file)
+        if len(line) == 0:
+            continue
+        if line[0] == '#':
+            tel_client.send_message("me", message=line)
+            continue
+        if "youtube.com" in line:
+            #video_file, video_title = download_video(line.rstrip())
+            video_file, video_title = download_video_2(line.rstrip(), "./cookies.txt")
+            upload_file(video_file, video_title)
+            os.remove(video_file)
 
 
 # disconnecting the telegram session
